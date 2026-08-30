@@ -32,7 +32,7 @@ jobs:
           # No aws-access-key-id / aws-secret-access-key anywhere. The action
           # calls sts:AssumeRoleWithWebIdentity with the GitHub-issued JWT and
           # receives short-lived credentials scoped to this role alone.
-          role-to-assume: arn:aws:iam::020502037769:role/GitHubActionsSecurityCheckRole
+          role-to-assume: ${{vars.AWS_ROLE_ARN}}
           role-session-name: gha-security-check
           # IAM is a global service and the billing-alarm check hardcodes
           # us-east-1, so us-east-1 is the right home region for this job.
