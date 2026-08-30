@@ -72,6 +72,53 @@ security posture than a typical CI setup, and worth calling out explicitly
 in the README/LinkedIn post since it demonstrates real judgment, not just
 tool usage.
 
+## Automation status: implemented ✅
+
+This repo runs `setup-aws-security.sh` daily via GitHub Actions
+(`.github/workflows/security-check.yml`), authenticating to AWS with
+**OpenID Connect (OIDC)** — no static AWS Access Key is stored anywhere
+in GitHub. The workflow assumes an IAM role scoped to this exact repo
+and branch, with only the five read-only permissions the script needs.
+
+### A lesson learned: GitHub's "immutable" OIDC subject format
+
+As of July 2026, GitHub changed the format of the `sub` claim issued in
+its OIDC tokens for newly created repositories. The classic format
+(`repo:OWNER/REPO:ref:refs/heads/BRANCH`) was replaced with an
+ID-based format that survives renames:
+
+repo:OWNER@<owner-id>/REPO@<repo-id>:ref:refs/heads/BRANCH
+
+This exists so that if a GitHub username or repository name is later
+freed up and claimed by someone else, that new owner can't forge a
+`sub` claim that an old, still-trusted IAM role would accept. Most
+existing tutorials (and most LLM training data) still document the old
+format — this project's IAM trust policy pins the *new*, ID-based
+`sub` value with `StringEquals`, verified directly against the actual
+claim captured in AWS CloudTrail during setup.
+
+### Using this in your own AWS account
+
+This workflow does not hardcode any AWS account ID. To adapt it:
+
+1. Create your own OIDC identity provider for
+   `token.actions.githubusercontent.com` in IAM (skip if one already
+   exists in your account — only one is needed per AWS account).
+2. Create an IAM role trusted by that provider, with a trust policy
+   scoped to your fork's `owner/repo` and branch. Check GitHub's
+   current `sub` claim format for your repo (see lesson above) before
+   writing the condition — don't assume the classic format still
+   applies.
+3. Attach a read-only policy granting: `iam:GetAccountSummary`,
+   `iam:ListUsers`, `iam:ListMFADevices`, `iam:ListAccessKeys`,
+   `cloudwatch:DescribeAlarms`.
+4. In your fork's repo settings, go to **Settings → Secrets and
+   variables → Actions → Variables**, and add a repository variable
+   named `AWS_ROLE_ARN` with your role's ARN. Nothing needs to change
+   in the workflow file itself — it already reads
+   `${{ vars.AWS_ROLE_ARN }}`.
+
+
 ## Notes
 
 - This script is intentionally **read-only** — it reports issues, it does
