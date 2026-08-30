@@ -51,26 +51,6 @@ flowchart TD
     I -- no --> L[Exit code 0]
 ```
 
-## Automating it (GitHub Actions, scheduled)
-
-Instead of running this manually, it can run on a schedule via GitHub
-Actions, authenticating to AWS **without any static access keys** using
-OpenID Connect (OIDC) — GitHub proves its identity to AWS directly, and
-AWS hands out short-lived, scoped credentials for the run only.
-
-High-level setup:
-1. Create an IAM OIDC identity provider for `token.actions.githubusercontent.com`.
-2. Create an IAM role trusted by that provider, scoped to this repo, with
-   only the read-only permissions listed above.
-3. Add a workflow (`.github/workflows/security-check.yml`) that assumes
-   that role via `aws-actions/configure-aws-credentials` and runs this
-   script on a `schedule` trigger (e.g. daily) plus `workflow_dispatch`
-   for manual runs.
-
-This avoids ever storing an AWS Access Key as a GitHub secret — a stronger
-security posture than a typical CI setup, and worth calling out explicitly
-in the README/LinkedIn post since it demonstrates real judgment, not just
-tool usage.
 
 ## Automation status: implemented ✅
 
